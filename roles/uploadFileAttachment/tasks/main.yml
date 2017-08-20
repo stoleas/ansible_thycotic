@@ -1,0 +1,40 @@
+---
+#- name: role | uploadFileAttachment | Convert Secret Value to byte array then base64
+#  shell: "echo '{{secret_value}}' | xxd | base64"
+#  register: secret_value_b64
+
+# Test to Ensure how lookup works
+#- debug: var=secret_value_b64.stdout_lines
+#- debug: var=secret_value_b64
+#- debug: msg="{{ lookup('template', './soap_requests/UploadFileAttachment.xml') }}"
+
+#- name: Test copy content of xml to file
+#  copy:
+#    content: "{{ lookup('template', './soap_requests/UploadFileAttachment.xml') }}"
+#    dest: /tmp/test_xml_uploadFileAttachment
+
+- name: role | uploadFileAttachment | Upload File attachment for secret ID {{ secret_id }}
+  uri:
+    method: POST
+    url: "{{ epm_server_soap_endpoint }}"
+    headers:
+      Content-Type: "text/xml; charset=utf-8"
+      SOAPAction: "urn:thesecretserver.com/UploadFileAttachment"
+    body: "{{ lookup('template', './soap_requests/UploadFileAttachment.xml') }}"
+    body_format: raw
+    return_content: yes
+    validate_certs: no
+  register: xml_data
+
+# - debug: var=xml_data
+- name: role | uploadFileAttachment | Assert that we successfully upload file attachment
+  assert:
+    that:
+      - "'File attachment not found' not in xml_data.content"
+      - "'Secret has multiple file attachment fields' not in xml_data.content"
+      - "'Access Denied' not in xml_data.content"
+      - "'No Secret exists' not in xml_data.content"
+      - "'The requested Secret is DoubleLocked' not in xml_data.content"
+      - "'The requested Secret requires requesting approval' not in xml_data.content"
+      - "'The requested Secret requires a comment' not in xml_data.content"
+      - "'The requested Secret is currently checked out to' not in xml_data.content"

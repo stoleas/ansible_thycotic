@@ -1,0 +1,40 @@
+---
+# Include the vaulted username and password file or else it will default to using ../defaults/main.yml
+# See http://docs.ansible.com/ansible/playbooks_variables.html#variable-precedence-where-should-i-put-a-variable
+# for more details on the variable precedence in roles
+
+
+# Test to Ensure how lookup works
+#  - name: Testing template lookuper of soap_request/Authenticate
+#    debug: msg="{{ lookup('template', './soap_requests/Authenticate', convert_data=False) }}"
+
+- name: role | getToken | Get token from SOAP API
+  uri:
+    method: POST
+    url: "{{ epm_server_soap_endpoint }}"
+    headers:
+      Content-Type: "text/xml; charset=utf-8"
+      SOAPAction: "urn:thesecretserver.com/Authenticate"
+    body: "{{ lookup('template', './soap_requests/Authenticate.xml') }}"
+    body_format: raw
+    return_content: yes
+    validate_certs: no
+  register: xml_data
+
+# Example successful server response
+# <AuthenticateResult xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="urn:thesecretserver.com">
+#   <Errors/>
+#   <Token>
+#     v2eec52af592f1b6a582d6888c376c168b21c6f5040259c86c7c30371adee72da1b449c94bf51ef5069bc3e8a1dcca5dccf0e18a4b32514a0aaffec1bfb3bdffd23c7dfc979da397cff3b5e314155e58e6dfa9131284869697e6ee9bf0b436b7f15e5ca5bf1922af870df85e79ae9992463f8fb2298b284ca7fe56d35a785ead15:525f2bca6a3b8cfc6618e35b0210ab6e
+#   </Token>
+# </AuthenticateResult>
+
+- name: role | getToken | Assert that we successfully authenticated
+  assert:
+    that:
+      - "'Login failed' not in xml_data.content"
+      - "'IP Address is not allowed' not in xml_data.content"
+
+- name: role | getToken | Set fact for Token value
+  set_fact:
+    cur_user_token: "{{ xml_data.content | regex_findall('<Token>(.*?)</Token>') }}"

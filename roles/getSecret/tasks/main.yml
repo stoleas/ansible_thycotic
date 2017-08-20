@@ -1,0 +1,47 @@
+---
+# Test to Ensure how lookup works
+# - name: Testing template lookup of soap_request/Authenticate
+#   debug: msg="{{ lookup('template', './soap_requests/GetSecret.xml', convert_data=False) }}"
+
+- name: role | getSecret | Get secrets for secret ID {{ secret_id }}
+  uri:
+    method: POST
+    url: "{{ epm_server_soap_endpoint }}"
+    headers: 
+      Content-Type: "text/xml; charset=utf-8"
+      SOAPAction: "urn:thesecretserver.com/GetSecret"
+    body: "{{ lookup('template', './soap_requests/GetSecret.xml') }}"
+    body_format: raw
+    return_content: yes
+    validate_certs: no
+  register: xml_data
+
+# - debug: var=xml_data.content
+
+- name: role | getSecret | Assert that we successfully retrieved secret
+  assert:
+    that:
+      - "'No secret exists' not in xml_data.content"
+      - "'The requested Secret is DoubleLocked' not in xml_data.content"
+      - "'The requested Secret requires requesting approval' not in xml_data.content"
+      - "'The requested Secret requires a comment' not in xml_data.content"
+      - "'The requested Secret is currently checked out to' not in xml_data.content"
+      - "'Access Denied' not in xml_data.content"
+
+# Gets all the secret information within a secret and maps the field_name and value to 2 seperate lists.
+# TODO: perhaps look into a way to filter merge these into dicts so that they are easier to manage by field_name
+# another way to manage them currently is to use the element number of the list and correspond it to the other.
+# See more on filter: http://docs.ansible.com/ansible/playbooks_filters.html#list-filters
+- name: role | getSecret | SetFact FieldNames from xml_data
+  set_fact: 
+            get_secret_field_name="{{ xml_data.content | regex_findall('<FieldName>(.*?)</FieldName>') }}"
+                 get_secret_value="{{ xml_data.content | regex_findall('<Value>(.*?)</Value>') }}"
+             get_secret_folder_id="{{ xml_data.content | regex_findall('<FolderId>(.*?)</FolderId>') }}"
+             get_secret_secret_id="{{ xml_data.content | regex_findall('<Id>(.*?)</Id>') }}"
+              get_secret_field_id="{{ xml_data.content | regex_findall('<FieldId>(.*?)</FieldId>') }}"
+               get_secret_is_file="{{ xml_data.content | regex_findall('<IsFile>(.*?)</IsFile>') }}"
+              get_secret_is_notes="{{ xml_data.content | regex_findall('<IsNotes>(.*?)</IsNotes>') }}"
+           get_secret_is_password="{{ xml_data.content | regex_findall('<IsPassword>(.*?)</IsPassword>') }}"
+    get_secret_field_display_name="{{ xml_data.content | regex_findall('<FieldDisplayName>(.*?)</FieldDisplayName>') }}"
+
+

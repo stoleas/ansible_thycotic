@@ -1,0 +1,102 @@
+---
+##### TEMPORARY #####
+# This should be changed to localhost once Tower can handle the
+# connection to the EPM server
+- hosts: servers
+  gather_facts: false
+  roles:
+##### Get's token
+# Token's are needed to communicate with Thycotic furhter through other plays
+  - { role: getToken, req_username: user, req_password: password }
+
+##### Update Secrets Value
+# Updating the secret's username
+#  - { role: updateSecret, secret_id: 2322, secret_field: "Username",               secret_value: "newusername",        secret_name: "ssh-key 1", tags: [ 'updateSecret' ] }
+#  - { role: updateSecret, secret_id: 2322, secret_field: "Username",               secret_value: "admin",              secret_name: "ssh-key 1", tags: [ 'updateSecret', 'revert' ] }
+## Updating the secret's password value
+#  - { role: updateSecret, secret_id: 2322, secret_field: "Password",               secret_value: "notmypassword",      secret_name: "ssh-key 1", tags: [ 'updateSecret' ] }
+#  - { role: updateSecret, secret_id: 2322, secret_field: "Password",               secret_value: "mysecretpassword",   secret_name: "ssh-key 1", tags: [ 'updateSecret', 'revert' ] }
+
+
+##### Upload a Secret File
+# Updating a Private Key File
+#  - { role: uploadFileAttachment, secret_id: 2242, secret_value: "{{ssh_key_content}}", secret_file_name: "id_rsa", tags: [ 'uploadFileAttachment' ] }
+# Reverts the key back to the original for the demo
+#  - { role: uploadFileAttachment, secret_id: 2242, secret_value: "myvalidattachment",  secret_file_name: "id_rsa",     tags: [ 'uploadFileAttachment', 'revert'] }
+
+##### Download File Attachment
+# Downloads a File attachment used to enable ssh access to other hosts.
+# This should probably run local on the tower server.
+# If you need to run it remotely you will need to look into using the add_hosts module
+# http://docs.ansible.com/ansible/add_host_module.html in addition
+# you will also need to update the variables for ansible_ssh_private_key_file
+# using the lookup functions using hostvars.
+# http://docs.ansible.com/ansible/latest/playbooks_variables.html#fact-caching
+  #- { role: downloadFileAttachment, secret_id: 2322, tags: [ 'init', 'downloadFileAttachment' ] }
+
+
+##### TEMPORARY #####
+# Comment out the this block once Tower server can communcate with EPM
+#  tasks:
+#  - add_host: groups=servers name=ist0000158
+#              ansible_ssh_private_key_file="~/.ssh/{{ hostvars['ist0000158']['attachment_file_name'] }}"
+#              asnsible_user=admin
+#    tags:
+#      - init
+#      - temporary
+
+##### Copy the secret ssh key content file to a file localhost on Ansible Tower
+# Remove this block when your ansible tower instance is able to communicate with
+# the EPM Thycotic server.
+# This was added due to communication failure with SSL between Tower and devepm.
+##### TEMPORARY #####
+#- hosts: localhost
+#  tasks:
+#  - name: Copy Secret file to localhost
+#    copy:
+#      content: "{{ hostvars['ist0000158']['attachment_content'] }}"
+#      dest: "~/.ssh/{{ hostvars['ist0000158']['attachment_file_name'] }}"
+#      mode: 0600
+#    tags:
+#      - init
+#      - temporary
+
+# Once the above is resolved comment the temporary section out and uncomment the below section:
+#  tasks:
+#  - name: Copy Secret file to localhost
+#    copy:
+#      content: "{{ attachment_content }}"
+#      dest: "~/.ssh/{{ attachment_file_name }}"
+#      mode: 0600
+
+#####
+# Run your team's Ansible installation plays here
+#- hosts: servers
+#  gather_facts: false
+#  remote_user: admin
+#  tasks:
+#  - name: Whaomi
+#    shell: whoami
+#    register: someout
+#    tags:
+#      - main
+#  - debug: var=someout
+#    tags:
+#      - main
+#####
+
+##### TEMPORARY #####
+# remove hostvar and replace with
+# path: "~/.ssh/{{ attachment_file_name }}"
+#
+# Cleanup the ssh key file so that it is not stored on the Ansible Tower server
+#- hosts: localhost
+#  gather_facts: false
+#  tasks:
+#  - name: Cleanup Secret file on localhost
+#    file:
+#      path: "~/.ssh/{{ hostvars['ist0000158']['attachment_file_name'] }}"
+#      state: absent
+#    tags:
+#      - init
+#      - cleanup

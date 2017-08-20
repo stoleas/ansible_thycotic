@@ -1,0 +1,33 @@
+---
+# - name: Testing template lookup of soap_request/Authenticate
+#   debug: msg="{{ lookup('template', './soap_requests/DownloadFileAttachment.xml') }}"
+
+- name: role | downloadFileAttachment | Get attachment for secret ID {{ secret_id }}
+  uri:
+    method: POST
+    url: "{{ epm_server_soap_endpoint }}"
+    headers: 
+      Content-Type: "text/xml; charset=utf-8"
+      SOAPAction: "urn:thesecretserver.com/DownloadFileAttachment"
+    body: "{{ lookup('template', './soap_requests/DownloadFileAttachment.xml') }}"
+    body_format: raw
+    return_content: yes
+    validate_certs: no
+  register: xml_data
+
+- name: role | downloadFileAttachment | Assert that we successfully retrieved file
+  assert:
+    that:
+      - "'File attachment not found' not in xml_data.content"
+      - "'Access Denied' not in xml_data.content"
+
+- name: role | downloadFileAttachment | Set Fact for file for file contents
+  set_fact:
+    attachment_content="{{ xml_data.content | regex_findall('<FileAttachment>(.*?)</FileAttachment>')}}"
+    attachment_file_name="{{ xml_data.content | regex_findall('<FileName>(.*?)</FileName>') }}"
+    random_key="{{ 1000000000 | random }}"
+
+- name: role | downloadFileAttachment | base64 decode key
+  set_fact:
+    attachment_content="{{ attachment_content[0] | b64decode }}"
+    attachment_file_name="{{ attachment_file_name[0] }}_{{ random_key }}"

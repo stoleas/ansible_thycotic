@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <UploadFileAttachment xmlns="urn:thesecretserver.com">
+      <token>{{ cur_user_token[0] }}</token>
+      <secretId>{{ secret_id }}</secretId>
+      <fileData>{{ secret_value | b64encode }}</fileData>
+      <fileName>{{ secret_file_name }}</fileName>
+    </UploadFileAttachment>
+  </soap:Body>
+</soap:Envelope>

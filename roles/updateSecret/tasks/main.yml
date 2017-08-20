@@ -1,0 +1,63 @@
+---
+- name: role | updateSecret | Include the getSecret Roles
+  include_role:
+    name: getSecret
+
+# - debug: msg="{{ lookup('template', './soap_requests/UpdateSecret.xml') }}"
+
+# zip functionality to combine lists has become available in Ansible 2.3.
+# http://docs.ansible.com/ansible/latest/playbooks_filters.html#combination-filters
+#- name: role | getSecret | SetFact merge FieldNames
+#  set_fact:
+#    secret_items="{{ secret_field_name | zip(secret_value) | list }}"
+#- debug: var=secret_items
+
+# Edit input from getSecret role
+- name: role | updateSecret | Set fact merge getSecret lists
+  set_fact:
+            secret_field_name="{{ item.0 }}"
+                 secret_value="{{ secret_value | default('item.1', true) }}"
+                    secret_id="{{ item.2 }}"
+              secret_field_id="{{ item.3 }}"
+               secret_is_file="{{ item.4 }}"
+              secret_is_notes="{{ item.5 }}"
+           secret_is_password="{{ item.6 }}"
+    secret_field_display_name="{{ item.7 }}"
+  with_together:
+    - "{{ get_secret_field_name }}"
+    - "{{ get_secret_value }}"
+    - "{{ get_secret_secret_id }}"
+    - "{{ get_secret_field_id }}"
+    - "{{ get_secret_is_file }}"
+    - "{{ get_secret_is_notes }}"
+    - "{{ get_secret_is_password }}"
+    - "{{ get_secret_field_display_name }}"
+  when: "{{ secret_field == item.0|default('', true) }}"
+
+- name: role | updateSecret | Updating secret for {{ secret_id }}
+  uri:
+    method: POST
+    url: "{{ epm_server_soap_endpoint }}"
+    headers:
+      Content-Type: "text/xml; charset=utf-8"
+      SOAPAction: "urn:thesecretserver.com/UpdateSecret"
+    body: "{{ lookup('template', './soap_requests/UpdateSecret.xml') }}"
+    body_format: raw
+    return_content: yes
+    validate_certs: no
+  register: xml_data
+
+# - debug: var=xml_data
+
+- name: role | updateSecret | Assert that we successfully update secret
+  assert:
+    that:
+      - "'Secret name exceeds max length' not in xml_data.content"
+      - "'Secret name cannot be empty' not in xml_data.content"
+      - "'Secret item value exceeds max length' not in xml_data.content"
+      - "'The folder does not exist' not in xml_data.content"
+      - "'user does not have access' not in xml_data.content"
+      - "'User does not have permission' not in xml_data.content"
+      - "'Provided Secret type is invalid' not in xml_data.content"
+      - "'Secret template is out of date' not in xml_data.content"
+      - "'Password does not meet' not in xml_data.content"
