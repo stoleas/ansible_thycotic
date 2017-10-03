@@ -5,7 +5,7 @@ Various integrations for Thycotic Secret Server (EPM) with Ansible.
 ## Playbook Layout
 ### Directory Tree
 ```bash
-redhat-thycotic-ansible-int2/
+ansible_thycotic/
 ├── group_vars
 │   └── servers
 │       └── vars.yml
